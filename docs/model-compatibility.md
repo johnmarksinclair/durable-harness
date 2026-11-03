@@ -1,10 +1,5 @@
 # Models through AI Gateway
 
-For implementing or debugging a harness, use the
-[AI Gateway model support skill](../skills/ai-gateway-model-support/SKILL.md).
-It covers discovery, protocol configuration, tool/recovery validation, and
-dated model-specific cases.
-
 Use the exact `provider/model` ID returned by
 [`GET /v1/models`](https://ai-gateway.vercel.sh/v1/models). Catalog presence
 describes availability and capabilities; a working agent also needs to call a
