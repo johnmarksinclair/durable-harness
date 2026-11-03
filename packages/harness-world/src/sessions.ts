@@ -350,9 +350,10 @@ export function durableSessions(
         }
         return;
       }
-      const held = result.experimental_held;
-      if (!held) {
-        const reason = result.experimental_notHeld?.reason ?? 'unsupported';
+      const held = result.experimental_hold;
+      if (held?.status !== 'held') {
+        // Absent: the World ignored the hold, as a queue without send-and-hold does.
+        const reason = held?.status === 'not_held' ? held.reason : 'unsupported';
         options.log?.('submit: the queue did not hold the wake; it delivers it', { runId: sessionId, reason });
         if (reason === 'unsupported') holdOffUntil = Date.now() + HOLD_RETRY_MS;
         started(false);

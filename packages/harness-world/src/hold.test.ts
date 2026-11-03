@@ -261,6 +261,17 @@ describe('send-and-hold: not held, or not offered', () => {
     });
   }
 
+  it('no experimental_hold in the answer (the World ignored it): nothing drives here, and it backs off as for unsupported', async () => {
+    const { a, broker, sessionId, tag, queueOpts } = await setup({ hold: 'ignored' });
+    await a.send(sessionId, 'one', 'prompt', { wake: 'backstop' });
+    await a.drive(sessionId);
+    expect(tag).toEqual([]);
+    await broker.drain({ timeoutMs: 2000 });
+    expect(tag).toEqual(['ran:one']);
+    await a.send(sessionId, 'two', 'prompt', { wake: 'backstop' });
+    expect(queueOpts[1]).not.toHaveProperty('experimental_hold');
+  });
+
   it('unsupported: later sends from this process go back to the deadline drive and its companion', async () => {
     const { a, broker, sessionId, tag, queueOpts } = await setup({ hold: 'unsupported' });
     await a.send(sessionId, 'one', 'prompt', { wake: 'backstop' });

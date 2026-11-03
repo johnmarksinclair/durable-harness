@@ -144,12 +144,13 @@ export interface LeasedWorldOptions {
   /**
    * Declare `capabilities.experimental_queueHold`, and answer a send with
    * `experimental_hold` this way (per message, or one answer for all):
-   * `'held'` returns `experimental_held` (the message waits out a lease of
+   * `'held'` returns `experimental_hold: { status: 'held', ... }` (the message waits out a lease of
    * `visibilityMs` for its sender to `consume()` it, then is delivered as
-   * usual), any other reason returns `experimental_notHeld` and the message
-   * is delivered as usual. A repeated idempotency key is `duplicate`.
+   * usual), any other reason returns `{ status: 'not_held', reason }` and the message
+   * is delivered as usual; `'ignored'` returns no `experimental_hold` (a
+   * World that ignores the option). A repeated idempotency key is `duplicate`.
    */
-  hold?: 'held' | HoldAnswer | ((payload: unknown) => 'held' | HoldAnswer);
+  hold?: 'held' | 'ignored' | HoldAnswer | ((payload: unknown) => 'held' | 'ignored' | HoldAnswer);
 }
 
 /** A send-and-hold answer other than held. */
@@ -193,7 +194,7 @@ export function leasedWorld(base: World, options: LeasedWorldOptions = {}): Leas
     if (hold && opts.delaySeconds !== undefined) throw new TypeError('experimental_hold cannot be combined with delaySeconds');
     if (opts.idempotencyKey) {
       const existing = keys.get(opts.idempotencyKey);
-      if (existing) return { messageId: existing.messageId, ...(hold ? { experimental_notHeld: { reason: 'duplicate' } } : {}) };
+      if (existing) return { messageId: existing.messageId, ...(hold && hold !== 'ignored' ? { experimental_hold: { status: 'not_held' as const, reason: 'duplicate' } } : {}) };
     }
     const message: BrokerMessage = {
       messageId: `msg_${String(++seq).padStart(6, '0')}`,
@@ -206,8 +207,8 @@ export function leasedWorld(base: World, options: LeasedWorldOptions = {}): Leas
     };
     messages.push(message);
     if (opts.idempotencyKey) keys.set(opts.idempotencyKey, message);
-    if (!hold) return { messageId: message.messageId };
-    if (hold !== 'held') return { messageId: message.messageId, experimental_notHeld: { reason: hold } };
+    if (!hold || hold === 'ignored') return { messageId: message.messageId };
+    if (hold !== 'held') return { messageId: message.messageId, experimental_hold: { status: 'not_held' as const, reason: hold } };
     // Held for the sender: not delivered while its lease runs. `consume`
     // starts the delivery (renewing it); a lapsed lease delivers as usual.
     message.availableAt = Date.now() + visibilityMs;
@@ -215,7 +216,8 @@ export function leasedWorld(base: World, options: LeasedWorldOptions = {}): Leas
     holds.push(record);
     return {
       messageId: message.messageId,
-      experimental_held: {
+      experimental_hold: {
+        status: 'held' as const,
         messageId: message.messageId,
         leaseExpiresAt: new Date(message.availableAt),
         async consume(handler: Handler) {

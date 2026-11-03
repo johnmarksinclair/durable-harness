@@ -10,7 +10,7 @@ import { QUEUE_NAME } from './queue.ts';
  * renewed while the handler runs, and a lapsed lease redelivers the message.
  *
  * The World API is experimental (`@workflow/world`'s `experimental_hold`,
- * `experimental_held`, `capabilities.experimental_queueHold`) and the World
+ * the result's `experimental_hold`, `capabilities.experimental_queueHold`) and the World
  * types this package builds against do not carry it yet, so it is typed here,
  * structurally, and detected at run time. A World without the capability
  * never sees the option.
@@ -27,8 +27,9 @@ export interface HeldDeliveryMeta {
   invocationStartedAt?: number;
 }
 
-/** `experimental_held`: a message the queue holds for its sender. */
+/** `experimental_hold` with `status: 'held'`: a message the queue holds for its sender. */
 export interface HeldMessage {
+  readonly status: 'held';
   readonly messageId: string;
   readonly leaseExpiresAt: Date;
   /** Run `handler` on the message here, as the World's queue handler runs a delivery of it. */
@@ -40,11 +41,20 @@ export interface HeldMessage {
 /** Why a held send did not come back held. The queue delivers the message in every case. */
 export type NotHeldReason = 'unsupported' | 'deferred' | 'lost' | 'coalesced' | 'concurrency_limited' | 'duplicate' | 'error';
 
-/** What `world.queue()` resolves with on a World that holds. */
+/** `experimental_hold` with `status: 'not_held'`: the queue delivers the message. */
+export interface NotHeldMessage {
+  readonly status: 'not_held';
+  readonly reason: NotHeldReason | (string & {});
+}
+
+/**
+ * What `world.queue()` resolves with on a World that holds. `experimental_hold`
+ * is absent when no hold was asked for or the World ignored it: the queue
+ * delivers the message then too.
+ */
 export interface HoldQueueResult {
   messageId: string | null;
-  experimental_held?: HeldMessage;
-  experimental_notHeld?: { reason: NotHeldReason | (string & {}) };
+  experimental_hold?: HeldMessage | NotHeldMessage;
 }
 
 /** Whether `world`'s queue can hold a message for its sender. */

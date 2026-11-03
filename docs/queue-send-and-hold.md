@@ -76,8 +76,11 @@ while the sender runs: the same lock a delivery has, but taken at send time.
   `capabilities.experimental_queueHold`. `world.queue(name, payload, {
   idempotencyKey, experimental_hold: { consumerGroup } })` (never with
   `delaySeconds`)
-  resolves with `experimental_held` when the queue holds the message, or
-  `experimental_notHeld: { reason }` when it doesn't. `held.consume(handler)`
+  resolves with `experimental_hold: { status: 'held', ... }` when the queue
+  holds the message, or `{ status: 'not_held', reason }` when it doesn't
+  (no `experimental_hold` at all from a World that ignores the option, and
+  `not_held: unsupported` for a send pinned to another deployment); in every
+  case but `held` the queue delivers it. `held.consume(handler)`
   runs the queue consumer's own handler on the message in the sender, exactly
   as a pushed delivery runs (first delivery, lease renewed while it runs, ack
   on resolve, retries on a rejection). The hold is claimed for one consumer
@@ -125,7 +128,7 @@ under the key the companion would have had (`harness-world`'s `hold.ts`):
   delivery to the kernel, so one drive per session per process still holds:
   a held wake that lands while the session drives here acks, and the drive
   under way runs once more.
-- **Not held** (any reason). Nothing runs here: the queue delivers the wake to
+- **Not held** (`not_held`, any reason, or no `experimental_hold`). Nothing runs here: the queue delivers the wake to
   the flow route, one hop, as `drive: 'queue'` does. A run-ahead submission
   sends one more wake once it is durable, so a delivery that came first and
   found nothing to do does not leave it waiting. An `unsupported` answer (the
