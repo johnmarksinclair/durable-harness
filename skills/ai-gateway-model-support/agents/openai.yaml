@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Gateway Model Support"
+  short_description: "Implement and verify models across coding harnesses"
+  default_prompt: "Use $ai-gateway-model-support to add or debug model support in this coding-agent harness and verify a real tool round trip."

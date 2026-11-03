@@ -82,6 +82,10 @@ Choose your harness and framework in the
 
 ## Harnesses
 
+See [model compatibility](https://github.com/vercel-labs/durable-harness/blob/main/docs/model-compatibility.md) for Gateway configuration
+and the [AI Gateway model support skill](https://github.com/vercel-labs/durable-harness/blob/main/skills/ai-gateway-model-support/SKILL.md)
+for implementation and validation guidance.
+
 - [Pi](https://vercel.com/docs/agent-harnesses/pi): `durable-harness/pi-durable`
   (recommended: Pi's own durable `Harness` on a World), or `durable-harness/pi`.
 - [OpenCode](https://vercel.com/docs/agent-harnesses/opencode):
